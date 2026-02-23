@@ -1,0 +1,26 @@
+<%- include("partials/head", { title: "Comanda trimisa" }) %>
+
+<section class="card success-page">
+  <p class="eyebrow">Order Status</p>
+  <h1>Comanda a fost inregistrata cu succes</h1>
+  <p>
+    <strong><%= order.customer_name %></strong>, comanda ta pentru
+    <strong><%= order.cocktail_name %></strong> a fost primita.
+  </p>
+  <p>Urmeaza sa primesti comanda in cel mai scurt timp.</p>
+
+  <% if (fallback) { %>
+    <p class="muted">
+      Trimiterea automata prin Twilio nu a mers acum. Poti trimite mesajul manual pe WhatsApp din butonul de mai jos.
+    </p>
+  <% } %>
+
+  <div class="hero-actions">
+    <% if (whatsappUrl) { %>
+      <a class="btn btn-secondary" href="<%= whatsappUrl %>" target="_blank" rel="noreferrer">Trimite pe WhatsApp</a>
+    <% } %>
+    <a class="btn" href="/menu">Back to Menu</a>
+  </div>
+</section>
+
+<%- include("partials/foot") %>

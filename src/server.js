@@ -196,7 +196,7 @@ app.post(
       return res.redirect("/menu?order_error=Bautura+aleasa+nu+exista");
     }
 
-    await run(
+    const createdOrder = await run(
       `
       INSERT INTO orders (customer_name, cocktail_id, cocktail_name, note)
       VALUES (?, ?, ?, ?)
@@ -212,26 +212,55 @@ app.post(
     ].filter(Boolean);
     const messageBody = lines.join("\n");
 
-    if (getTwilioConfig().enabled) {
+    const twilio = getTwilioConfig();
+    const whatsappUrl = whatsappNumber
+      ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(messageBody)}`
+      : "";
+
+    if (twilio.enabled) {
       try {
         await sendTwilioWhatsappMessage(messageBody);
-        return res.redirect(`/menu?order_success=Comanda+a+fost+trimisa+automat+pe+WhatsApp&cocktail_id=${cocktail.id}`);
+        return res.redirect(`/order/success?order_id=${createdOrder.id}`);
       } catch (err) {
         console.error("Twilio send failed:", err.message);
-        return res.redirect(
-          `/menu?order_error=Comanda+salvata,+dar+trimiterea+automata+a+esuat&cocktail_id=${cocktail.id}`
-        );
+        if (whatsappUrl) {
+          return res.redirect(
+            `/order/success?order_id=${createdOrder.id}&whatsapp_url=${encodeURIComponent(whatsappUrl)}&fallback=1`
+          );
+        }
+        return res.redirect("/menu?order_error=Comanda+salvata,+dar+trimiterea+automata+a+esuat");
       }
     }
 
-    if (whatsappNumber) {
-      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(messageBody)}`;
-      return res.redirect(whatsappUrl);
+    if (whatsappUrl) {
+      return res.redirect(`/order/success?order_id=${createdOrder.id}&whatsapp_url=${encodeURIComponent(whatsappUrl)}`);
     }
 
-    return res.redirect(
-      `/menu?order_success=Comanda+a+fost+salvata.+Configureaza+Twilio+sau+WHATSAPP_NUMBER&cocktail_id=${cocktail.id}`
-    );
+    return res.redirect(`/order/success?order_id=${createdOrder.id}`);
+  })
+);
+
+app.get(
+  "/order/success",
+  asyncHandler(async (req, res) => {
+    const orderId = Number.parseInt(req.query.order_id, 10);
+    if (Number.isNaN(orderId)) {
+      return res.redirect("/menu");
+    }
+
+    const order = await get("SELECT id, customer_name, cocktail_name FROM orders WHERE id = ?", [orderId]);
+    if (!order) {
+      return res.redirect("/menu");
+    }
+
+    const whatsappUrl = (req.query.whatsapp_url || "").trim();
+    const fallback = req.query.fallback === "1";
+
+    return res.render("order-success", {
+      order,
+      whatsappUrl: whatsappUrl.startsWith("https://wa.me/") ? whatsappUrl : "",
+      fallback
+    });
   })
 );
 
