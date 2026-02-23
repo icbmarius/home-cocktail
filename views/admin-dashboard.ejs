@@ -1,0 +1,113 @@
+<%- include("partials/head", { title: "Admin Dashboard" }) %>
+
+<section class="page-head">
+  <h1>Admin Dashboard</h1>
+  <form method="POST" action="/admin/logout">
+    <button class="btn btn-small btn-secondary" type="submit">Logout</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Add cocktail</h2>
+
+  <% if (error) { %>
+    <p class="alert"><%= error %></p>
+  <% } %>
+
+  <% if (success) { %>
+    <p class="success"><%= success %></p>
+  <% } %>
+
+  <form class="form" method="POST" action="/admin/cocktails" enctype="multipart/form-data">
+    <label>
+      Name *
+      <input type="text" name="name" required />
+    </label>
+
+    <label>
+      Ingredients * (one line or multiple lines)
+      <textarea name="ingredients" rows="4" required></textarea>
+    </label>
+
+    <label>
+      Preparation * (steps)
+      <textarea name="instructions" rows="4" required></textarea>
+    </label>
+
+    <label>
+      Strength (light / medium / strong)
+      <input type="text" name="strength" />
+    </label>
+
+    <label>
+      Glass type
+      <input type="text" name="glass_type" />
+    </label>
+
+    <label>
+      Garnish
+      <input type="text" name="garnish" />
+    </label>
+
+    <label>
+      Tags (comma separated, e.g. sour, classic, tequila)
+      <input type="text" name="tags" />
+    </label>
+
+    <label>
+      Photo (optional)
+      <input type="file" name="image" accept="image/*" />
+    </label>
+
+    <button class="btn" type="submit">Save cocktail</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Existing cocktails</h2>
+  <% if (!cocktails.length) { %>
+    <p>No cocktails yet.</p>
+  <% } %>
+
+  <% cocktails.forEach((item) => { %>
+    <div class="admin-item">
+      <div>
+        <strong><%= item.name %></strong>
+        <p class="muted"><%= item.created_at %></p>
+      </div>
+      <div class="row-actions">
+        <% if (item.image_path) { %>
+          <a class="btn btn-small btn-secondary" href="<%= item.image_path %>" target="_blank" rel="noreferrer">View photo</a>
+        <% } %>
+        <form method="POST" action="/admin/cocktails/<%= item.id %>/delete">
+          <button class="btn btn-small danger" type="submit">Delete</button>
+        </form>
+      </div>
+    </div>
+  <% }) %>
+</section>
+
+<section class="card">
+  <h2>Comenzi primite</h2>
+  <% if (!orders.length) { %>
+    <p>Nicio comanda inca.</p>
+  <% } %>
+
+  <% orders.forEach((order) => { %>
+    <div class="admin-item">
+      <div>
+        <strong><%= order.customer_name %></strong>
+        <p><%= order.cocktail_name %></p>
+        <% if (order.note) { %><p class="muted"><%= order.note %></p><% } %>
+        <p class="muted"><%= order.created_at %></p>
+      </div>
+      <div class="row-actions">
+        <form method="POST" action="/admin/orders/<%= order.id %>/delete">
+          <button class="btn btn-small danger" type="submit">Sterge</button>
+        </form>
+      </div>
+    </div>
+  <% }) %>
+</section>
+
+<%- include("partials/foot") %>

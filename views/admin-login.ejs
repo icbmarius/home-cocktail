@@ -1,0 +1,20 @@
+<%- include("partials/head", { title: "Admin Login" }) %>
+
+<section class="card auth-card">
+  <h1>Admin Login</h1>
+  <p>Use your admin password to edit cocktails.</p>
+
+  <% if (error) { %>
+    <p class="alert"><%= error %></p>
+  <% } %>
+
+  <form method="POST" action="/admin/login" class="form">
+    <label>
+      Password
+      <input type="password" name="password" required />
+    </label>
+    <button class="btn" type="submit">Login</button>
+  </form>
+</section>
+
+<%- include("partials/foot") %>

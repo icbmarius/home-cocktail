@@ -1,0 +1,22 @@
+<%- include("partials/head", { title: cocktail.name }) %>
+
+<article class="card cocktail-detail">
+  <% if (cocktail.image_path) { %>
+    <img class="cocktail-image-lg" src="<%= cocktail.image_path %>" alt="<%= cocktail.name %>" />
+  <% } %>
+  <h1><%= cocktail.name %></h1>
+  <% if (cocktail.strength) { %><p><strong>Strength:</strong> <%= cocktail.strength %></p><% } %>
+  <% if (cocktail.glass_type) { %><p><strong>Glass:</strong> <%= cocktail.glass_type %></p><% } %>
+  <% if (cocktail.garnish) { %><p><strong>Garnish:</strong> <%= cocktail.garnish %></p><% } %>
+  <% if (cocktail.tags) { %><p><strong>Tags:</strong> <%= cocktail.tags %></p><% } %>
+
+  <h3>Ingredients</h3>
+  <p class="multiline"><%= cocktail.ingredients %></p>
+
+  <h3>How to make it</h3>
+  <p class="multiline"><%= cocktail.instructions %></p>
+
+  <a class="btn btn-small" href="/menu">Back to menu</a>
+</article>
+
+<%- include("partials/foot") %>

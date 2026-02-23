@@ -1,0 +1,67 @@
+<%- include("partials/head", { title: "Cocktail Menu" }) %>
+
+<section class="page-head">
+  <h1>Cocktail Menu</h1>
+  <p>Alege ce vrei sa bei si trimite comanda direct pe WhatsApp.</p>
+</section>
+
+<section class="card order-card" id="order">
+  <h2>Comanda rapid</h2>
+  <form class="form" method="POST" action="/order">
+    <label>
+      Numele tau *
+      <input type="text" name="customer_name" required placeholder="Ex: Alex" />
+    </label>
+
+    <label>
+      Ce bautura doresti *
+      <select name="cocktail_id" required>
+        <option value="">Alege un cocktail</option>
+        <% cocktails.forEach((item) => { %>
+          <option value="<%= item.id %>" <%= selectedId === item.id ? "selected" : "" %>><%= item.name %></option>
+        <% }) %>
+      </select>
+    </label>
+
+    <label>
+      Detalii (optional)
+      <input type="text" name="note" placeholder="Ex: fara gheata / extra lime" />
+    </label>
+
+    <button class="btn" type="submit">Trimite pe WhatsApp</button>
+  </form>
+
+  <% if (orderError) { %>
+    <p class="alert"><%= orderError %></p>
+  <% } %>
+
+  <% if (orderSuccess) { %>
+    <p class="success"><%= orderSuccess %></p>
+  <% } %>
+
+  <% if (!whatsappConfigured) { %>
+    <p class="muted">WhatsApp nu este configurat inca. Seteaza `WHATSAPP_NUMBER` in `.env`.</p>
+  <% } %>
+</section>
+
+<section class="grid">
+  <% if (!cocktails.length) { %>
+    <div class="card">
+      <h3>Meniul este gol</h3>
+      <p>Adauga cocktail-uri din panoul de admin.</p>
+    </div>
+  <% } %>
+
+  <% cocktails.forEach((item) => { %>
+    <article class="card cocktail-card">
+      <% if (item.image_path) { %>
+        <img class="cocktail-image" src="<%= item.image_path %>" alt="<%= item.name %>" />
+      <% } %>
+      <h3><%= item.name %></h3>
+      <p class="ingredients"><%= item.ingredients %></p>
+      <a class="btn btn-small" href="/menu?cocktail_id=<%= item.id %>#order">Vreau asta</a>
+    </article>
+  <% }) %>
+</section>
+
+<%- include("partials/foot") %>
