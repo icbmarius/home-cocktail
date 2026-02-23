@@ -1,8 +1,8 @@
 <%- include("partials/head", { title: "Admin Login" }) %>
 
 <section class="card auth-card">
-  <h1>Admin Login</h1>
-  <p>Use your admin password to edit cocktails.</p>
+  <h1>Autentificare Admin</h1>
+  <p>Introdu parola pentru a administra meniul de cocktail-uri.</p>
 
   <% if (error) { %>
     <p class="alert"><%= error %></p>
@@ -10,10 +10,10 @@
 
   <form method="POST" action="/admin/login" class="form">
     <label>
-      Password
+      Parola
       <input type="password" name="password" required />
     </label>
-    <button class="btn" type="submit">Login</button>
+    <button class="btn" type="submit">Autentifica-te</button>
   </form>
 </section>
 

@@ -85,7 +85,6 @@ app.get("/", (req, res) => {
   const whatsappNumber = normalizeWhatsappNumber(process.env.WHATSAPP_NUMBER);
   res.render("home", {
     menuUrl,
-    adminUrl: `${baseUrl}/admin/login`,
     whatsappConfigured: Boolean(whatsappNumber)
   });
 });
@@ -131,12 +130,12 @@ app.post(
     const whatsappNumber = normalizeWhatsappNumber(process.env.WHATSAPP_NUMBER);
 
     if (!customerName || Number.isNaN(cocktailId)) {
-      return res.redirect("/menu?order_error=Complete+name+and+drink");
+      return res.redirect(`/menu?order_error=Completeaza+numele+si+bautura&cocktail_id=${cocktailId || ""}`);
     }
 
     const cocktail = await get("SELECT id, name FROM cocktails WHERE id = ?", [cocktailId]);
     if (!cocktail) {
-      return res.redirect("/menu?order_error=Invalid+drink+selected");
+      return res.redirect("/menu?order_error=Bautura+aleasa+nu+exista");
     }
 
     await run(
@@ -148,7 +147,7 @@ app.post(
     );
 
     if (!whatsappNumber) {
-      return res.redirect("/menu?order_success=Order+saved.+Set+WHATSAPP_NUMBER+to+send+on+WhatsApp.");
+      return res.redirect("/menu?order_success=Comanda+a+fost+salvata.+Configureaza+WHATSAPP_NUMBER+pentru+trimitere.");
     }
 
     const lines = [
@@ -185,7 +184,7 @@ app.post("/admin/login", (req, res) => {
   const adminPassword = process.env.ADMIN_PASSWORD || "change-me";
 
   if (password !== adminPassword) {
-    return res.status(401).render("admin-login", { error: "Wrong password." });
+    return res.status(401).render("admin-login", { error: "Parola incorecta." });
   }
 
   req.session.isAdmin = true;
@@ -222,13 +221,9 @@ app.post(
   asyncHandler(async (req, res) => {
     const name = (req.body.name || "").trim();
     const ingredients = (req.body.ingredients || "").trim();
-    const instructions = (req.body.instructions || "").trim();
-    const strength = (req.body.strength || "").trim();
-    const glassType = (req.body.glass_type || "").trim();
-    const garnish = (req.body.garnish || "").trim();
-    const tags = (req.body.tags || "").trim();
+    const instructions = "N/A";
 
-    if (!name || !ingredients || !instructions) {
+    if (!name || !ingredients) {
       const cocktails = await all("SELECT id, name, image_path, created_at FROM cocktails ORDER BY id DESC");
       const orders = await all(
         "SELECT id, customer_name, cocktail_name, note, created_at FROM orders ORDER BY id DESC LIMIT 100"
@@ -236,7 +231,7 @@ app.post(
       return res.status(400).render("admin-dashboard", {
         cocktails,
         orders,
-        error: "Name, ingredients and preparation are required.",
+        error: "Numele si ingredientele sunt obligatorii.",
         success: null
       });
     }
@@ -248,7 +243,7 @@ app.post(
       INSERT INTO cocktails (name, ingredients, instructions, image_path, strength, glass_type, garnish, tags)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
-      [name, ingredients, instructions, imagePath, strength, glassType, garnish, tags]
+      [name, ingredients, instructions, imagePath, null, null, null, null]
     );
 
     return res.redirect("/admin?success=Saved");

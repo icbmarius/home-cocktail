@@ -1,7 +1,7 @@
 # Cocktail QR Menu
 
 Aplicatie pentru bar acasa:
-- panou admin pentru adaugare cocktail-uri (nume, ingrediente, preparare, poza);
+- panou admin simplificat pentru adaugare cocktail-uri (nume, ingrediente, poza);
 - meniu public accesat prin QR;
 - formular de comanda (nume + bautura) care trimite comanda pe WhatsApp;
 - comenzi salvate si in baza de date (vizibile in admin).

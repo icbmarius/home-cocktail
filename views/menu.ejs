@@ -1,35 +1,43 @@
 <%- include("partials/head", { title: "Cocktail Menu" }) %>
 
-<section class="page-head">
-  <h1>Cocktail Menu</h1>
-  <p>Alege ce vrei sa bei si trimite comanda direct pe WhatsApp.</p>
+<section class="page-head menu-head">
+  <div>
+    <p class="eyebrow">House Selection</p>
+    <h1>Cocktail Menu</h1>
+    <p>Alege un cocktail din lista si apoi apasa <strong>Order</strong>.</p>
+  </div>
 </section>
 
-<section class="card order-card" id="order">
-  <h2>Comanda rapid</h2>
-  <form class="form" method="POST" action="/order">
-    <label>
-      Numele tau *
-      <input type="text" name="customer_name" required placeholder="Ex: Alex" />
-    </label>
+<section class="grid">
+  <% if (!cocktails.length) { %>
+    <div class="card">
+      <h3>Meniul este gol</h3>
+      <p>Gazda va adauga in curand cocktail-urile disponibile.</p>
+    </div>
+  <% } %>
 
-    <label>
-      Ce bautura doresti *
-      <select name="cocktail_id" required>
-        <option value="">Alege un cocktail</option>
-        <% cocktails.forEach((item) => { %>
-          <option value="<%= item.id %>" <%= selectedId === item.id ? "selected" : "" %>><%= item.name %></option>
-        <% }) %>
-      </select>
-    </label>
+  <% cocktails.forEach((item) => { %>
+    <article
+      class="card cocktail-card <%= selectedId === item.id ? "is-selected" : "" %>"
+      data-cocktail-id="<%= item.id %>"
+      data-cocktail-name="<%= item.name %>"
+    >
+      <% if (item.image_path) { %>
+        <img class="cocktail-image" src="<%= item.image_path %>" alt="<%= item.name %>" />
+      <% } %>
+      <h3><%= item.name %></h3>
+      <p class="ingredients"><%= item.ingredients %></p>
+      <button class="btn btn-small btn-secondary select-cocktail-btn" type="button">Selecteaza</button>
+    </article>
+  <% }) %>
+</section>
 
-    <label>
-      Detalii (optional)
-      <input type="text" name="note" placeholder="Ex: fara gheata / extra lime" />
-    </label>
-
-    <button class="btn" type="submit">Trimite pe WhatsApp</button>
-  </form>
+<section class="card order-launch">
+  <h2>Comanda</h2>
+  <p id="selectedDrinkLabel" class="muted">Nu ai selectat inca un cocktail.</p>
+  <button class="btn order-main-btn" id="openOrderBtn" type="button" <%= cocktails.length ? "" : "disabled" %>>
+    Order
+  </button>
 
   <% if (orderError) { %>
     <p class="alert"><%= orderError %></p>
@@ -40,28 +48,89 @@
   <% } %>
 
   <% if (!whatsappConfigured) { %>
-    <p class="muted">WhatsApp nu este configurat inca. Seteaza `WHATSAPP_NUMBER` in `.env`.</p>
+    <p class="muted">WhatsApp nu este configurat inca. Comanda va fi doar salvata in sistem.</p>
   <% } %>
 </section>
 
-<section class="grid">
-  <% if (!cocktails.length) { %>
-    <div class="card">
-      <h3>Meniul este gol</h3>
-      <p>Adauga cocktail-uri din panoul de admin.</p>
-    </div>
-  <% } %>
+<section class="card order-sheet" id="orderSheet" <%= orderError ? "" : "hidden" %>>
+  <h2>Order Form</h2>
+  <form class="form" method="POST" action="/order">
+    <label>
+      Numele tau *
+      <input id="customerNameField" type="text" name="customer_name" required placeholder="Ex: Alex" />
+    </label>
 
-  <% cocktails.forEach((item) => { %>
-    <article class="card cocktail-card">
-      <% if (item.image_path) { %>
-        <img class="cocktail-image" src="<%= item.image_path %>" alt="<%= item.name %>" />
-      <% } %>
-      <h3><%= item.name %></h3>
-      <p class="ingredients"><%= item.ingredients %></p>
-      <a class="btn btn-small" href="/menu?cocktail_id=<%= item.id %>#order">Vreau asta</a>
-    </article>
-  <% }) %>
+    <label>
+      Bautura *
+      <input id="cocktailNameField" type="text" readonly placeholder="Selecteaza un cocktail de mai sus" />
+      <input id="cocktailIdField" type="hidden" name="cocktail_id" value="<%= selectedId || "" %>" />
+    </label>
+
+    <label>
+      Detalii
+      <textarea name="note" rows="3" placeholder="Ex: fara gheata, extra lime"></textarea>
+    </label>
+
+    <button class="btn" type="submit">Trimite comanda</button>
+  </form>
 </section>
+
+<script id="cocktail-json" type="application/json">
+  <%- JSON.stringify(cocktails.map((item) => ({ id: item.id, name: item.name }))) %>
+</script>
+<script>
+  (() => {
+    const cards = Array.from(document.querySelectorAll("[data-cocktail-id]"));
+    const orderSheet = document.getElementById("orderSheet");
+    const openOrderBtn = document.getElementById("openOrderBtn");
+    const label = document.getElementById("selectedDrinkLabel");
+    const cocktailNameField = document.getElementById("cocktailNameField");
+    const cocktailIdField = document.getElementById("cocktailIdField");
+    const customerNameField = document.getElementById("customerNameField");
+    const cocktails = JSON.parse(document.getElementById("cocktail-json").textContent);
+    let selectedId = Number.parseInt("<%= selectedId || "" %>", 10);
+    if (Number.isNaN(selectedId)) selectedId = null;
+
+    function pickCocktail(id) {
+      const selected = cocktails.find((c) => c.id === id);
+      selectedId = selected ? selected.id : null;
+
+      cards.forEach((card) => {
+        const cardId = Number.parseInt(card.dataset.cocktailId, 10);
+        card.classList.toggle("is-selected", cardId === selectedId);
+      });
+
+      if (selected) {
+        label.textContent = `Selectat: ${selected.name}`;
+        cocktailNameField.value = selected.name;
+        cocktailIdField.value = String(selected.id);
+        openOrderBtn.disabled = false;
+      } else {
+        label.textContent = "Nu ai selectat inca un cocktail.";
+        cocktailNameField.value = "";
+        cocktailIdField.value = "";
+      }
+    }
+
+    cards.forEach((card) => {
+      card.querySelector(".select-cocktail-btn").addEventListener("click", () => {
+        const id = Number.parseInt(card.dataset.cocktailId, 10);
+        pickCocktail(id);
+      });
+    });
+
+    openOrderBtn.addEventListener("click", () => {
+      if (!selectedId) {
+        label.textContent = "Selecteaza un cocktail inainte de a comanda.";
+        return;
+      }
+      orderSheet.hidden = false;
+      orderSheet.scrollIntoView({ behavior: "smooth", block: "start" });
+      customerNameField.focus();
+    });
+
+    pickCocktail(selectedId);
+  })();
+</script>
 
 <%- include("partials/foot") %>

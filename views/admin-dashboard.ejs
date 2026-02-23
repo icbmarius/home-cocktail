@@ -1,14 +1,17 @@
 <%- include("partials/head", { title: "Admin Dashboard" }) %>
 
 <section class="page-head">
-  <h1>Admin Dashboard</h1>
+  <div>
+    <p class="eyebrow">Admin</p>
+    <h1>Panou Cocktails</h1>
+  </div>
   <form method="POST" action="/admin/logout">
     <button class="btn btn-small btn-secondary" type="submit">Logout</button>
   </form>
 </section>
 
 <section class="card">
-  <h2>Add cocktail</h2>
+  <h2>Adauga cocktail</h2>
 
   <% if (error) { %>
     <p class="alert"><%= error %></p>
@@ -20,53 +23,28 @@
 
   <form class="form" method="POST" action="/admin/cocktails" enctype="multipart/form-data">
     <label>
-      Name *
+      Nume cocktail *
       <input type="text" name="name" required />
     </label>
 
     <label>
-      Ingredients * (one line or multiple lines)
+      Ce contine *
       <textarea name="ingredients" rows="4" required></textarea>
     </label>
 
     <label>
-      Preparation * (steps)
-      <textarea name="instructions" rows="4" required></textarea>
-    </label>
-
-    <label>
-      Strength (light / medium / strong)
-      <input type="text" name="strength" />
-    </label>
-
-    <label>
-      Glass type
-      <input type="text" name="glass_type" />
-    </label>
-
-    <label>
-      Garnish
-      <input type="text" name="garnish" />
-    </label>
-
-    <label>
-      Tags (comma separated, e.g. sour, classic, tequila)
-      <input type="text" name="tags" />
-    </label>
-
-    <label>
-      Photo (optional)
+      Poza preparat (optional)
       <input type="file" name="image" accept="image/*" />
     </label>
 
-    <button class="btn" type="submit">Save cocktail</button>
+    <button class="btn" type="submit">Salveaza</button>
   </form>
 </section>
 
 <section class="card">
-  <h2>Existing cocktails</h2>
+  <h2>Lista cocktail-uri</h2>
   <% if (!cocktails.length) { %>
-    <p>No cocktails yet.</p>
+    <p>Nu exista cocktail-uri inca.</p>
   <% } %>
 
   <% cocktails.forEach((item) => { %>
@@ -77,10 +55,10 @@
       </div>
       <div class="row-actions">
         <% if (item.image_path) { %>
-          <a class="btn btn-small btn-secondary" href="<%= item.image_path %>" target="_blank" rel="noreferrer">View photo</a>
+          <a class="btn btn-small btn-secondary" href="<%= item.image_path %>" target="_blank" rel="noreferrer">Vezi poza</a>
         <% } %>
         <form method="POST" action="/admin/cocktails/<%= item.id %>/delete">
-          <button class="btn btn-small danger" type="submit">Delete</button>
+          <button class="btn btn-small danger" type="submit">Sterge</button>
         </form>
       </div>
     </div>
