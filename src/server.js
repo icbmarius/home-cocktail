@@ -100,7 +100,8 @@ async function sendTwilioWhatsappMessage(messageBody) {
 function normalizeBaseUrl(req) {
   const configured = (process.env.PUBLIC_BASE_URL || "").trim();
   if (configured) {
-    return configured.replace(/\/+$/, "");
+    const withProtocol = /^https?:\/\//i.test(configured) ? configured : `https://${configured}`;
+    return withProtocol.replace(/\/+$/, "");
   }
   return `${req.protocol}://${req.get("host")}`;
 }
