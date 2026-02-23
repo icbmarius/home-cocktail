@@ -42,6 +42,61 @@ function normalizeWhatsappNumber(value) {
   return String(value || "").replace(/[^\d]/g, "");
 }
 
+function normalizeWhatsappAddress(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw.toLowerCase().startsWith("whatsapp:")) return raw;
+  if (raw.startsWith("+")) return `whatsapp:${raw}`;
+  const digits = raw.replace(/[^\d]/g, "");
+  return digits ? `whatsapp:+${digits}` : "";
+}
+
+function getTwilioConfig() {
+  const accountSid = (process.env.TWILIO_ACCOUNT_SID || "").trim();
+  const authToken = (process.env.TWILIO_AUTH_TOKEN || "").trim();
+  const from = normalizeWhatsappAddress(process.env.TWILIO_WHATSAPP_FROM);
+  const to = normalizeWhatsappAddress(process.env.TWILIO_WHATSAPP_TO);
+  return {
+    accountSid,
+    authToken,
+    from,
+    to,
+    enabled: Boolean(accountSid && authToken && from && to)
+  };
+}
+
+async function sendTwilioWhatsappMessage(messageBody) {
+  const twilio = getTwilioConfig();
+  if (!twilio.enabled) {
+    return { sent: false };
+  }
+
+  const endpoint = `https://api.twilio.com/2010-04-01/Accounts/${twilio.accountSid}/Messages.json`;
+  const body = new URLSearchParams({
+    From: twilio.from,
+    To: twilio.to,
+    Body: messageBody
+  });
+  const authValue = Buffer.from(`${twilio.accountSid}:${twilio.authToken}`).toString("base64");
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${authValue}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Twilio HTTP ${response.status}: ${errorText.slice(0, 180)}`);
+  }
+
+  const payload = await response.json();
+  return { sent: true, sid: payload.sid };
+}
+
 function normalizeBaseUrl(req) {
   const configured = (process.env.PUBLIC_BASE_URL || "").trim();
   if (configured) {
@@ -83,9 +138,10 @@ app.get("/", (req, res) => {
   const baseUrl = normalizeBaseUrl(req);
   const menuUrl = `${baseUrl}/menu`;
   const whatsappNumber = normalizeWhatsappNumber(process.env.WHATSAPP_NUMBER);
+  const twilioEnabled = getTwilioConfig().enabled;
   res.render("home", {
     menuUrl,
-    whatsappConfigured: Boolean(whatsappNumber)
+    whatsappConfigured: Boolean(whatsappNumber) || twilioEnabled
   });
 });
 
@@ -110,13 +166,14 @@ app.get(
   asyncHandler(async (req, res) => {
     const cocktails = await all("SELECT id, name, ingredients, image_path FROM cocktails ORDER BY name ASC");
     const whatsappNumber = normalizeWhatsappNumber(process.env.WHATSAPP_NUMBER);
+    const twilioEnabled = getTwilioConfig().enabled;
     const selectedId = Number.parseInt(req.query.cocktail_id, 10) || null;
     res.render("menu", {
       cocktails,
       selectedId,
       orderError: req.query.order_error || null,
       orderSuccess: req.query.order_success || null,
-      whatsappConfigured: Boolean(whatsappNumber)
+      whatsappConfigured: Boolean(whatsappNumber) || twilioEnabled
     });
   })
 );
@@ -146,18 +203,34 @@ app.post(
       [customerName, cocktail.id, cocktail.name, note || null]
     );
 
-    if (!whatsappNumber) {
-      return res.redirect("/menu?order_success=Comanda+a+fost+salvata.+Configureaza+WHATSAPP_NUMBER+pentru+trimitere.");
-    }
-
     const lines = [
       "Salut! Comanda noua de cocktail:",
       `Nume: ${customerName}`,
       `Bautura: ${cocktail.name}`,
       note ? `Detalii: ${note}` : null
     ].filter(Boolean);
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(lines.join("\n"))}`;
-    return res.redirect(whatsappUrl);
+    const messageBody = lines.join("\n");
+
+    if (getTwilioConfig().enabled) {
+      try {
+        await sendTwilioWhatsappMessage(messageBody);
+        return res.redirect(`/menu?order_success=Comanda+a+fost+trimisa+automat+pe+WhatsApp&cocktail_id=${cocktail.id}`);
+      } catch (err) {
+        console.error("Twilio send failed:", err.message);
+        return res.redirect(
+          `/menu?order_error=Comanda+salvata,+dar+trimiterea+automata+a+esuat&cocktail_id=${cocktail.id}`
+        );
+      }
+    }
+
+    if (whatsappNumber) {
+      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(messageBody)}`;
+      return res.redirect(whatsappUrl);
+    }
+
+    return res.redirect(
+      `/menu?order_success=Comanda+a+fost+salvata.+Configureaza+Twilio+sau+WHATSAPP_NUMBER&cocktail_id=${cocktail.id}`
+    );
   })
 );
 

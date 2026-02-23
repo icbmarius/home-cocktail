@@ -17,6 +17,7 @@ Completeaza `.env`:
 - `ADMIN_PASSWORD` parola admin;
 - `SESSION_SECRET` string lung random;
 - `WHATSAPP_NUMBER` numarul tau WhatsApp in format international, doar cifre (ex: `407xxxxxxxx`);
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`, `TWILIO_WHATSAPP_TO` pentru trimitere automata (optional);
 - `PUBLIC_BASE_URL` optional local (se poate lasa gol).
 
 Pornire:
@@ -35,8 +36,13 @@ Pagini:
 Cand un invitat trimite comanda:
 1. completeaza nume + bautura;
 2. aplicatia salveaza comanda in DB;
-3. utilizatorul este redirectionat la `wa.me` cu mesajul precompletat;
-4. mesajul ajunge la numarul tau dupa ce utilizatorul confirma trimiterea in WhatsApp.
+3. daca ai configurat `TWILIO_*`, serverul trimite automat mesajul WhatsApp;
+4. daca nu ai Twilio dar ai `WHATSAPP_NUMBER`, utilizatorul este redirectionat la `wa.me` cu mesaj precompletat.
+
+### Twilio Sandbox (test)
+- `TWILIO_WHATSAPP_FROM`: `whatsapp:+14155238886` (de obicei in sandbox).
+- `TWILIO_WHATSAPP_TO`: numarul tau, ex: `whatsapp:+407xxxxxxxx`.
+- Trimite mesajul `join <codul_tau>` catre numarul sandbox inainte de test.
 
 ## 3. Deploy (recomandat cu volum persistent)
 
@@ -55,6 +61,10 @@ Aplicatia foloseste fisiere locale pentru DB si poze, deci in cloud ai nevoie de
    - `ADMIN_PASSWORD`
    - `SESSION_SECRET`
    - `WHATSAPP_NUMBER`
+   - `TWILIO_ACCOUNT_SID`
+   - `TWILIO_AUTH_TOKEN`
+   - `TWILIO_WHATSAPP_FROM`
+   - `TWILIO_WHATSAPP_TO`
    - `PUBLIC_BASE_URL`
    - `DATA_DIR=/data`
    - `UPLOAD_DIR=/data/uploads`
