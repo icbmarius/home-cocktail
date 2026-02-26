@@ -321,12 +321,16 @@ app.get(
     const editCocktail = Number.isNaN(editId)
       ? null
       : await get("SELECT id, name, ingredients, image_path FROM cocktails WHERE id = ?", [editId]);
+    let error = req.query.error || null;
+    if (!Number.isNaN(editId) && !editCocktail) {
+      error = "Cocktail-ul selectat pentru editare nu exista.";
+    }
 
     res.render("admin-dashboard", {
       cocktails,
       orders,
       editCocktail,
-      error: req.query.error || null,
+      error,
       success: req.query.success || null
     });
   })
