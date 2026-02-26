@@ -38,6 +38,15 @@ app.use(
 app.use(express.static(publicDir));
 app.use("/uploads", express.static(uploadDir));
 
+function deleteImageByPath(imagePath) {
+  if (!imagePath) return;
+  const fileName = path.basename(imagePath);
+  const targetPath = path.join(uploadDir, fileName);
+  if (targetPath.startsWith(uploadDir) && fs.existsSync(targetPath)) {
+    fs.unlinkSync(targetPath);
+  }
+}
+
 function normalizeWhatsappNumber(value) {
   return String(value || "").replace(/[^\d]/g, "");
 }
@@ -304,14 +313,20 @@ app.get(
   "/admin",
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const cocktails = await all("SELECT id, name, image_path, created_at FROM cocktails ORDER BY id DESC");
+    const cocktails = await all("SELECT id, name, ingredients, image_path, created_at FROM cocktails ORDER BY id DESC");
     const orders = await all(
       "SELECT id, customer_name, cocktail_name, note, created_at FROM orders ORDER BY id DESC LIMIT 100"
     );
+    const editId = Number.parseInt(req.query.edit_id, 10);
+    const editCocktail = Number.isNaN(editId)
+      ? null
+      : await get("SELECT id, name, ingredients, image_path FROM cocktails WHERE id = ?", [editId]);
+
     res.render("admin-dashboard", {
       cocktails,
       orders,
-      error: null,
+      editCocktail,
+      error: req.query.error || null,
       success: req.query.success || null
     });
   })
@@ -327,13 +342,17 @@ app.post(
     const instructions = "N/A";
 
     if (!name || !ingredients) {
-      const cocktails = await all("SELECT id, name, image_path, created_at FROM cocktails ORDER BY id DESC");
+      if (req.file) {
+        deleteImageByPath(`/uploads/${req.file.filename}`);
+      }
+      const cocktails = await all("SELECT id, name, ingredients, image_path, created_at FROM cocktails ORDER BY id DESC");
       const orders = await all(
         "SELECT id, customer_name, cocktail_name, note, created_at FROM orders ORDER BY id DESC LIMIT 100"
       );
       return res.status(400).render("admin-dashboard", {
         cocktails,
         orders,
+        editCocktail: null,
         error: "Numele si ingredientele sunt obligatorii.",
         success: null
       });
@@ -354,6 +373,68 @@ app.post(
 );
 
 app.post(
+  "/admin/cocktails/:id/update",
+  requireAdmin,
+  upload.single("image"),
+  asyncHandler(async (req, res) => {
+    const cocktailId = Number.parseInt(req.params.id, 10);
+    if (Number.isNaN(cocktailId)) {
+      if (req.file) {
+        deleteImageByPath(`/uploads/${req.file.filename}`);
+      }
+      return res.redirect("/admin?error=ID+cocktail+invalid");
+    }
+
+    const existingCocktail = await get("SELECT id, name, ingredients, image_path FROM cocktails WHERE id = ?", [cocktailId]);
+    if (!existingCocktail) {
+      if (req.file) {
+        deleteImageByPath(`/uploads/${req.file.filename}`);
+      }
+      return res.redirect("/admin?error=Cocktail+inexistent");
+    }
+
+    const name = (req.body.name || "").trim();
+    const ingredients = (req.body.ingredients || "").trim();
+
+    if (!name || !ingredients) {
+      if (req.file) {
+        deleteImageByPath(`/uploads/${req.file.filename}`);
+      }
+      const cocktails = await all("SELECT id, name, ingredients, image_path, created_at FROM cocktails ORDER BY id DESC");
+      const orders = await all(
+        "SELECT id, customer_name, cocktail_name, note, created_at FROM orders ORDER BY id DESC LIMIT 100"
+      );
+      return res.status(400).render("admin-dashboard", {
+        cocktails,
+        orders,
+        editCocktail: {
+          ...existingCocktail,
+          name: name || existingCocktail.name,
+          ingredients: ingredients || existingCocktail.ingredients
+        },
+        error: "Numele si ingredientele sunt obligatorii.",
+        success: null
+      });
+    }
+
+    let imagePath = existingCocktail.image_path;
+    if (req.file) {
+      imagePath = `/uploads/${req.file.filename}`;
+      deleteImageByPath(existingCocktail.image_path);
+    }
+
+    await run("UPDATE cocktails SET name = ?, ingredients = ?, image_path = ? WHERE id = ?", [
+      name,
+      ingredients,
+      imagePath,
+      cocktailId
+    ]);
+
+    return res.redirect("/admin?success=Cocktail+actualizat");
+  })
+);
+
+app.post(
   "/admin/orders/:id/delete",
   requireAdmin,
   asyncHandler(async (req, res) => {
@@ -367,13 +448,7 @@ app.post(
   requireAdmin,
   asyncHandler(async (req, res) => {
     const row = await get("SELECT image_path FROM cocktails WHERE id = ?", [req.params.id]);
-    if (row && row.image_path) {
-      const fileName = path.basename(row.image_path);
-      const targetPath = path.join(uploadDir, fileName);
-      if (targetPath.startsWith(uploadDir) && fs.existsSync(targetPath)) {
-        fs.unlinkSync(targetPath);
-      }
-    }
+    if (row && row.image_path) deleteImageByPath(row.image_path);
 
     await run("DELETE FROM cocktails WHERE id = ?", [req.params.id]);
     await run("DELETE FROM orders WHERE cocktail_id = ?", [req.params.id]);

@@ -51,12 +51,14 @@
     <div class="admin-item">
       <div>
         <strong><%= item.name %></strong>
+        <p class="muted multiline"><%= item.ingredients %></p>
         <p class="muted"><%= item.created_at %></p>
       </div>
       <div class="row-actions">
         <% if (item.image_path) { %>
           <a class="btn btn-small btn-secondary" href="<%= item.image_path %>" target="_blank" rel="noreferrer">Vezi poza</a>
         <% } %>
+        <a class="btn btn-small btn-secondary" href="/admin?edit_id=<%= item.id %>">Editeaza</a>
         <form method="POST" action="/admin/cocktails/<%= item.id %>/delete">
           <button class="btn btn-small danger" type="submit">Sterge</button>
         </form>
@@ -64,6 +66,40 @@
     </div>
   <% }) %>
 </section>
+
+<% if (editCocktail) { %>
+  <section class="card">
+    <h2>Editeaza cocktail</h2>
+    <form class="form" method="POST" action="/admin/cocktails/<%= editCocktail.id %>/update" enctype="multipart/form-data">
+      <label>
+        Nume cocktail *
+        <input type="text" name="name" required value="<%= editCocktail.name %>" />
+      </label>
+
+      <label>
+        Descriere / Ce contine *
+        <textarea name="ingredients" rows="4" required><%= editCocktail.ingredients %></textarea>
+      </label>
+
+      <% if (editCocktail.image_path) { %>
+        <p class="muted">
+          Poza actuala:
+          <a href="<%= editCocktail.image_path %>" target="_blank" rel="noreferrer">deschide</a>
+        </p>
+      <% } %>
+
+      <label>
+        Schimba poza (optional)
+        <input type="file" name="image" accept="image/*" />
+      </label>
+
+      <div class="row-actions">
+        <button class="btn" type="submit">Salveaza modificarile</button>
+        <a class="btn btn-secondary" href="/admin">Anuleaza</a>
+      </div>
+    </form>
+  </section>
+<% } %>
 
 <section class="card">
   <h2>Comenzi primite</h2>
